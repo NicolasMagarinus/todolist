@@ -1,5 +1,5 @@
-import app from "./src/app";
-import { appDataSource } from "./src/data-source";
+import app from "./app";
+import { appDataSource } from "./data-source";
 
 const PORT = 3002;
 
@@ -13,3 +13,4 @@ appDataSource.initialize()
   .catch((error) => {
     console.error("Error during Data Source initialization:", error);
   });
+  

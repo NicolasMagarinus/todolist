@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { appDataSource } from "../data-source";
 import UserRepository from "../repositories/userRepository";
 import bcrypt from 'bcryptjs';
+import { sendMessage } from "../broker/producer";
 
 export class UserController {
     private userRepository: UserRepository;
@@ -42,6 +43,8 @@ export class UserController {
                 password: hashedPassword
             });
 
+            await sendMessage('task_created', { user });
+
             res.status(200).json(user);
         } catch (error) {
             res.status(400).json({ message: "Error creating user", error });
@@ -69,6 +72,8 @@ export class UserController {
             if (!updatedUser) {
                 res.status(404).send('User not found');
             } else {
+                await sendMessage('task_created', { updatedUser });
+
                 res.status(200).json(updatedUser);
             }
         } catch (error) {
@@ -82,6 +87,8 @@ export class UserController {
         if (!success) {
             res.status(404).json({ message: "User not found"});
         } else {
+            await sendMessage('task_created', { id: req.params.id });
+
             res.status(200).json({message: "User successfully deleted."});
         }
     };

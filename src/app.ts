@@ -12,6 +12,13 @@ app.use(cors())
 app.use("/api", routerUsuario)
 app.use("/api", routerLogin)
 app.use("/api", routerTask)
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        status: 'UP',
+        timestamp: new Date().toISOString(),
+    });
+});
+
 
 app.use(errorHandler);
 

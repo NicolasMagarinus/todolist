@@ -1,0 +1,83 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - rabbitmq
+    networks:
+      - app_net
+    volumes:
+      - ./src:/usr/src/app/src
+      - /usr/src/app/node_modules
+    command: npm run dev
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - app_net
+    command: ["node", "build/broker/producer.js"]
+    restart: always
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+
+  consumer:
+    build: .
+    depends_on:
+      - rabbitmq
+    networks:
+      - app_net
+    command: ["node", "build/broker/consumer.js"]
+    restart: always
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+
+  db:
+    image: postgres:17
+    container_name: todolist_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: nicolasbr12
+      POSTGRES_DB: todolist
+    ports:
+      - "5432:5432"
+    networks:
+      - app_net
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: todolist_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app_net
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+volumes:
+  postgres_data:
+
+networks:
+  app_net:
+    driver: bridge

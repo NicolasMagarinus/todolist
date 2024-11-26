@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { appDataSource } from "../data-source";
 import TaskRepository from "../repositories/taskRepository";
+import { sendMessage } from "../broker/producer";
 
 export class TaskController {
     private taskRepository: TaskRepository;
@@ -18,7 +19,7 @@ export class TaskController {
         const task = await this.taskRepository.getById(parseInt(req.params.id));
 
         if (!task) {
-            res.status(404).json({message: "Task not found"});
+            res.status(404).json({ message: "Task not found" });
         } else {
             res.status(200).json(task);
         }
@@ -28,7 +29,7 @@ export class TaskController {
         const { tittle, description, startDate, endDate, priority } = req.body;
 
         if (!tittle || !description || !startDate || !endDate || !priority) {
-            res.status(400).json({ message: "Tittle, description, startDate, endDate and priority are required." });
+            res.status(400).json({ message: "Tittle, description, startDate, endDate, and priority are required." });
             return;
         }
 
@@ -41,7 +42,9 @@ export class TaskController {
                 priority
             });
 
-            res.status(200).json(newTask);
+            await sendMessage('task_created', { newTask });
+
+            res.status(201).json(newTask);
         } catch (error) {
             res.status(400).json({ message: "Error creating task", error });
         }
@@ -51,7 +54,7 @@ export class TaskController {
         const { tittle, description, startDate, endDate, priority } = req.body;
 
         if (!tittle || !description || !startDate || !endDate || !priority) {
-            res.status(400).json({ message: "Tittle, description, startDate, endDate and priority are required." });
+            res.status(400).json({ message: "Tittle, description, startDate, endDate, and priority are required." });
             return;
         }
 
@@ -64,6 +67,8 @@ export class TaskController {
                 priority
             });
 
+            await sendMessage('task_updated', { updatedTask });
+
             res.status(200).json(updatedTask);
         } catch (error) {
             res.status(400).json({ message: "Error updating task", error });
@@ -71,12 +76,15 @@ export class TaskController {
     };
 
     delete = async (req: Request, res: Response): Promise<void> => {
-        const success = await this.taskRepository.delete(parseInt(req.params.id));
+        const taskId = parseInt(req.params.id);
+        const success = await this.taskRepository.delete(taskId);
 
         if (!success) {
-            res.status(404).json({message: "Task not found"});
+            res.status(404).json({ message: "Task not found" });
         } else {
-            res.status(200).json({message: "Task successfully deleted."});
+            await sendMessage('task_deleted', { id: taskId });
+
+            res.status(200).json({ message: "Task successfully deleted." });
         }
     };
 }
